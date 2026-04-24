@@ -28,7 +28,7 @@ type Contact = { id: string; name: string; phone: string; note: string };
 type VoiceEntry = { id: string; title: string; transcript: string; date: string };
 
 const seedDeals: Deal[] = [
-  { id: "1", company: "Acme Corp", contact: "Maria Lopez", value: "$120k", stage: "Proposal" as Stage, note: "Sent proposal Friday." },
+  { id: "1", company: "Acme Corp", contact: "Maria Lopez", value: "$120k", stage: "Negotiation", note: "Sent proposal Friday." },
   { id: "2", company: "Globex", contact: "John Park", value: "$45k", stage: "Interested", note: "Wants demo next week." },
   { id: "3", company: "Initech", contact: "Sara Khan", value: "$88k", stage: "Negotiation", note: "Pricing review." },
   { id: "4", company: "Umbrella", contact: "Diego Rivera", value: "$22k", stage: "New Lead", note: "Inbound from referral." },
@@ -48,7 +48,7 @@ const seedEntries: VoiceEntry[] = [
 ];
 
 function Dashboard() {
-  const [deals, setDeals] = useState<Deal[]>(seedDeals.map(d => ({ ...d, stage: STAGES.includes(d.stage) ? d.stage : "Interested" })));
+  const [deals, setDeals] = useState<Deal[]>(seedDeals);
   const [contacts] = useState<Contact[]>(seedContacts);
   const [entries, setEntries] = useState<VoiceEntry[]>(seedEntries);
   const [recording, setRecording] = useState(false);
