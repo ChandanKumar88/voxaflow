@@ -184,7 +184,7 @@ function Dashboard() {
       <Sidebar onLogout={handleLogout} />
       <main className="flex-1">
         <Topbar email={user.email ?? ""} onLogout={handleLogout} />
-        <div className="mx-auto max-w-7xl space-y-8 px-6 py-8">
+        <div id="overview" className="mx-auto max-w-7xl space-y-8 px-6 py-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Welcome back 👋</h1>
