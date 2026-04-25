@@ -306,7 +306,7 @@ function Dashboard() {
           </div>
 
           {/* Contacts */}
-          <Card className="border-border/60 p-6">
+          <Card id="contacts" className="border-border/60 p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-semibold">Contacts</h2>
               <div className="flex items-center gap-2">
