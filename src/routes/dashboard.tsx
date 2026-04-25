@@ -269,7 +269,7 @@ function Dashboard() {
               </div>
             </Card>
 
-            <Card className="border-border/60 p-6 lg:col-span-2">
+            <Card id="pipeline" className="border-border/60 p-6 lg:col-span-2">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-semibold">Pipeline</h2>
                 <div className="flex items-center gap-2">
