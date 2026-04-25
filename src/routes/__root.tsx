@@ -31,14 +31,18 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
+      { title: "VoxaFlow" },
+      { name: "description", content: "VoxaFlow CRM converts spoken interactions into structured CRM data to close deals faster." },
       { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { property: "og:title", content: "VoxaFlow" },
+      { property: "og:description", content: "VoxaFlow CRM converts spoken interactions into structured CRM data to close deals faster." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
       { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "VoxaFlow" },
+      { name: "twitter:description", content: "VoxaFlow CRM converts spoken interactions into structured CRM data to close deals faster." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/51fee12a-734c-4d35-a525-6e834b25bf2e/id-preview-3eeea8e5--84e7e21f-4b39-4fb0-b35c-38c4fd57170d.lovable.app-1777132441906.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/51fee12a-734c-4d35-a525-6e834b25bf2e/id-preview-3eeea8e5--84e7e21f-4b39-4fb0-b35c-38c4fd57170d.lovable.app-1777132441906.png" },
     ],
     links: [
       {
