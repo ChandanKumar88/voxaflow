@@ -274,24 +274,56 @@ function Dashboard() {
                 {voiceNotes.length === 0 && (
                   <p className="text-sm text-muted-foreground">No voice notes yet. Tap the mic to add one.</p>
                 )}
-                {voiceNotes.map((e) => (
-                  <div key={e.id} className="rounded-xl border border-border/60 p-3">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="font-medium">{e.title}</span>
-                      <button
-                        onClick={async () => {
-                          await voiceNotesService.remove(e.id);
-                          setVoiceNotes((p) => p.filter((x) => x.id !== e.id));
-                        }}
-                        className="text-xs text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+                {voiceNotes.map((e) => {
+                  const status = (e as VoiceNote & { status?: string }).status;
+                  const isWorking = status === "pending" || status === "processing";
+                  return (
+                    <div key={e.id} className="rounded-xl border border-border/60 p-3">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="font-medium">{e.title}</span>
+                        <div className="flex items-center gap-2">
+                          {isWorking && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-xs text-primary">
+                              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                              Transcribing…
+                            </span>
+                          )}
+                          {status === "failed" && (
+                            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs text-destructive">
+                              Failed
+                            </span>
+                          )}
+                          <button
+                            onClick={async () => {
+                              await voiceNotesService.remove(e.id);
+                              setVoiceNotes((p) => p.filter((x) => x.id !== e.id));
+                            }}
+                            className="text-xs text-muted-foreground hover:text-destructive"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                      <p className="mt-1 text-sm text-muted-foreground">{e.transcript}</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString()}</p>
+                      {status === "failed" && (
+                        <button
+                          onClick={async () => {
+                            await supabase.functions.invoke("transcribe-voice-note", {
+                              body: { voiceNoteId: e.id },
+                            });
+                            await voiceNotesService.update(e.id, { status: "pending", transcript: "Transcription pending…" } as never);
+                            const fresh = await voiceNotesService.list({ limit: 10 });
+                            setVoiceNotes(fresh);
+                          }}
+                          className="mt-2 text-xs text-primary hover:underline"
+                        >
+                          Retry transcription
+                        </button>
+                      )}
                     </div>
-                    <p className="mt-1 text-sm text-muted-foreground">{e.transcript}</p>
-                    <p className="mt-1 text-xs text-muted-foreground">{new Date(e.created_at).toLocaleString()}</p>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </Card>
 
