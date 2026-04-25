@@ -207,21 +207,39 @@ function Dashboard() {
 
           {/* Voice + Pipeline */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="border-border/60 p-6 lg:col-span-1">
+            <Card id="voice-notes" className="border-border/60 p-6 lg:col-span-1">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold">Voice input</h2>
                 <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> AI</Badge>
               </div>
               <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-gradient-hero p-8 text-center">
                 <button
-                  onClick={() => (recording ? addVoiceNote() : setRecording(true))}
-                  className={`flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-brand transition-transform hover:scale-105 ${recording ? "animate-pulse" : ""}`}
+                  type="button"
+                  onClick={() => (recording ? stopRecording() : startRecording())}
+                  disabled={uploading}
+                  className={`flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-brand transition-transform hover:scale-105 disabled:opacity-60 ${recording ? "animate-pulse" : ""}`}
                 >
                   {recording ? <Square className="h-7 w-7" /> : <Mic className="h-7 w-7" />}
                 </button>
-                <p className="mt-4 text-sm font-medium">{recording ? "Recording… tap to stop" : "Tap to record a voice note"}</p>
+                <p className="mt-4 text-sm font-medium">
+                  {recording ? "Recording… tap to stop" : uploading ? "Uploading…" : "Tap to record a voice note"}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">Or upload an audio file</p>
-                <Button variant="outline" size="sm" className="mt-4" onClick={addVoiceNote}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={handleFileSelected}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={handleUploadClick}
+                  disabled={uploading || recording}
+                >
                   <Upload className="mr-2 h-4 w-4" /> Upload audio
                 </Button>
               </div>
