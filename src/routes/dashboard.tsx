@@ -617,11 +617,11 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
         <Link to="/"><Logo /></Link>
       </div>
       <nav className="flex-1 space-y-1 p-3 text-sm">
-        <NavItem icon={LayoutDashboard} label="Overview" active />
-        <NavItem icon={Workflow} label="Pipeline" />
-        <NavItem icon={Users} label="Contacts" />
-        <NavItem icon={Mic} label="Voice notes" />
-        <NavItem icon={Settings} label="Settings" />
+        <NavItem icon={LayoutDashboard} label="Overview" targetId="overview" active />
+        <NavItem icon={Workflow} label="Pipeline" targetId="pipeline" />
+        <NavItem icon={Users} label="Contacts" targetId="contacts" />
+        <NavItem icon={Mic} label="Voice notes" targetId="voice-notes" />
+        <NavItem icon={Settings} label="Settings" onClick={() => toast.info("Settings coming soon")} />
       </nav>
       <div className="border-t border-sidebar-border p-3">
         <button
@@ -635,9 +635,16 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-function NavItem({ icon: Icon, label, active }: { icon: React.ElementType; label: string; active?: boolean }) {
+function NavItem({
+  icon: Icon, label, active, targetId, onClick,
+}: { icon: React.ElementType; label: string; active?: boolean; targetId?: string; onClick?: () => void }) {
   return (
     <button
+      type="button"
+      onClick={() => {
+        if (onClick) onClick();
+        else if (targetId) scrollToId(targetId);
+      }}
       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
         active ? "bg-gradient-brand text-primary-foreground shadow-brand" : "hover:bg-sidebar-accent"
       }`}
