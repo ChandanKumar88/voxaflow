@@ -101,19 +101,78 @@ function Dashboard() {
     navigate({ to: "/" });
   };
 
-  // Voice note quick-add (placeholder transcription)
-  const addVoiceNote = async () => {
+  // Upload an audio Blob to storage and create a voice_notes row
+  const saveAudioBlob = async (blob: Blob, opts?: { durationSeconds?: number; title?: string }) => {
+    if (!user) return;
+    setUploading(true);
     try {
+      const ext = (blob.type.split("/")[1] || "webm").split(";")[0];
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("voice-notes").upload(path, blob, {
+        contentType: blob.type || "audio/webm",
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+      const { data: signed } = await supabase.storage.from("voice-notes").createSignedUrl(path, 60 * 60 * 24 * 365);
       const note = await voiceNotesService.create({
-        title: "New voice note",
-        transcript: "Transcription will appear here once processing completes.",
+        title: opts?.title ?? `Voice note ${new Date().toLocaleString()}`,
+        transcript: "Transcription pending…",
+        audio_url: signed?.signedUrl ?? path,
+        duration_seconds: opts?.durationSeconds ?? null,
       });
       setVoiceNotes((p) => [note, ...p]);
-      setRecording(false);
       toast.success("Voice note saved");
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(`Upload failed: ${(e as Error).message}`);
+    } finally {
+      setUploading(false);
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error("Recording not supported in this browser");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      mr.ondataavailable = (ev) => {
+        if (ev.data.size > 0) audioChunksRef.current.push(ev.data);
+      };
+      mr.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || "audio/webm" });
+        const duration = Math.round((Date.now() - recordStartRef.current) / 1000);
+        stream.getTracks().forEach((t) => t.stop());
+        await saveAudioBlob(blob, { durationSeconds: duration });
+      };
+      mediaRecorderRef.current = mr;
+      recordStartRef.current = Date.now();
+      mr.start();
+      setRecording(true);
+    } catch (e) {
+      toast.error(`Microphone error: ${(e as Error).message}`);
+    }
+  };
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") mr.stop();
+    setRecording(false);
+  };
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("audio/")) {
+      toast.error("Please select an audio file");
+      return;
+    }
+    await saveAudioBlob(file, { title: file.name });
   };
 
   if (authLoading || !user) {
