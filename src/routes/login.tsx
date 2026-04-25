@@ -44,10 +44,15 @@ function LoginPage() {
 
   const onGoogle = async () => {
     setLoading(true);
-    const { error } = await signInWithGoogle();
+    const { error, redirected } = await signInWithGoogle();
     if (error) {
       setLoading(false);
       toast.error(error.message);
+      return;
+    }
+    if (!redirected) {
+      setLoading(false);
+      navigate({ to: "/dashboard" });
     }
   };
 
