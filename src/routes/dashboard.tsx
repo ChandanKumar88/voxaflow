@@ -16,12 +16,18 @@ import {
 import {
   Mic, Upload, Square, Phone, Plus, LayoutDashboard, Users, Workflow, Settings, LogOut, Sparkles, Pencil, Trash2, Search,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { contactsService, type Contact } from "@/services/contacts";
 import { dealsService, DEAL_STAGES, type Deal, type DealStage } from "@/services/deals";
 import { voiceNotesService, type VoiceNote } from "@/services/voiceNotes";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const scrollToId = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -43,6 +49,11 @@ function Dashboard() {
   const [dealSearch, setDealSearch] = useState("");
   const [contactSearch, setContactSearch] = useState("");
   const [recording, setRecording] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordStartRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Redirect if not logged in
@@ -90,19 +101,78 @@ function Dashboard() {
     navigate({ to: "/" });
   };
 
-  // Voice note quick-add (placeholder transcription)
-  const addVoiceNote = async () => {
+  // Upload an audio Blob to storage and create a voice_notes row
+  const saveAudioBlob = async (blob: Blob, opts?: { durationSeconds?: number; title?: string }) => {
+    if (!user) return;
+    setUploading(true);
     try {
+      const ext = (blob.type.split("/")[1] || "webm").split(";")[0];
+      const path = `${user.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage.from("voice-notes").upload(path, blob, {
+        contentType: blob.type || "audio/webm",
+        upsert: false,
+      });
+      if (upErr) throw upErr;
+      const { data: signed } = await supabase.storage.from("voice-notes").createSignedUrl(path, 60 * 60 * 24 * 365);
       const note = await voiceNotesService.create({
-        title: "New voice note",
-        transcript: "Transcription will appear here once processing completes.",
+        title: opts?.title ?? `Voice note ${new Date().toLocaleString()}`,
+        transcript: "Transcription pending…",
+        audio_url: signed?.signedUrl ?? path,
+        duration_seconds: opts?.durationSeconds ?? null,
       });
       setVoiceNotes((p) => [note, ...p]);
-      setRecording(false);
       toast.success("Voice note saved");
     } catch (e) {
-      toast.error((e as Error).message);
+      toast.error(`Upload failed: ${(e as Error).message}`);
+    } finally {
+      setUploading(false);
     }
+  };
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        toast.error("Recording not supported in this browser");
+        return;
+      }
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      audioChunksRef.current = [];
+      mr.ondataavailable = (ev) => {
+        if (ev.data.size > 0) audioChunksRef.current.push(ev.data);
+      };
+      mr.onstop = async () => {
+        const blob = new Blob(audioChunksRef.current, { type: mr.mimeType || "audio/webm" });
+        const duration = Math.round((Date.now() - recordStartRef.current) / 1000);
+        stream.getTracks().forEach((t) => t.stop());
+        await saveAudioBlob(blob, { durationSeconds: duration });
+      };
+      mediaRecorderRef.current = mr;
+      recordStartRef.current = Date.now();
+      mr.start();
+      setRecording(true);
+    } catch (e) {
+      toast.error(`Microphone error: ${(e as Error).message}`);
+    }
+  };
+
+  const stopRecording = () => {
+    const mr = mediaRecorderRef.current;
+    if (mr && mr.state !== "inactive") mr.stop();
+    setRecording(false);
+  };
+
+  const handleUploadClick = () => fileInputRef.current?.click();
+
+  const handleFileSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (!file.type.startsWith("audio/")) {
+      toast.error("Please select an audio file");
+      return;
+    }
+    await saveAudioBlob(file, { title: file.name });
   };
 
   if (authLoading || !user) {
@@ -114,7 +184,7 @@ function Dashboard() {
       <Sidebar onLogout={handleLogout} />
       <main className="flex-1">
         <Topbar email={user.email ?? ""} onLogout={handleLogout} />
-        <div className="mx-auto max-w-7xl space-y-8 px-6 py-8">
+        <div id="overview" className="mx-auto max-w-7xl space-y-8 px-6 py-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h1 className="text-3xl font-bold tracking-tight">Welcome back 👋</h1>
@@ -137,21 +207,39 @@ function Dashboard() {
 
           {/* Voice + Pipeline */}
           <div className="grid gap-6 lg:grid-cols-3">
-            <Card className="border-border/60 p-6 lg:col-span-1">
+            <Card id="voice-notes" className="border-border/60 p-6 lg:col-span-1">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold">Voice input</h2>
                 <Badge variant="secondary" className="gap-1"><Sparkles className="h-3 w-3" /> AI</Badge>
               </div>
               <div className="mt-6 flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-gradient-hero p-8 text-center">
                 <button
-                  onClick={() => (recording ? addVoiceNote() : setRecording(true))}
-                  className={`flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-brand transition-transform hover:scale-105 ${recording ? "animate-pulse" : ""}`}
+                  type="button"
+                  onClick={() => (recording ? stopRecording() : startRecording())}
+                  disabled={uploading}
+                  className={`flex h-20 w-20 items-center justify-center rounded-full bg-gradient-brand text-primary-foreground shadow-brand transition-transform hover:scale-105 disabled:opacity-60 ${recording ? "animate-pulse" : ""}`}
                 >
                   {recording ? <Square className="h-7 w-7" /> : <Mic className="h-7 w-7" />}
                 </button>
-                <p className="mt-4 text-sm font-medium">{recording ? "Recording… tap to stop" : "Tap to record a voice note"}</p>
+                <p className="mt-4 text-sm font-medium">
+                  {recording ? "Recording… tap to stop" : uploading ? "Uploading…" : "Tap to record a voice note"}
+                </p>
                 <p className="mt-1 text-xs text-muted-foreground">Or upload an audio file</p>
-                <Button variant="outline" size="sm" className="mt-4" onClick={addVoiceNote}>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={handleFileSelected}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={handleUploadClick}
+                  disabled={uploading || recording}
+                >
                   <Upload className="mr-2 h-4 w-4" /> Upload audio
                 </Button>
               </div>
@@ -181,7 +269,7 @@ function Dashboard() {
               </div>
             </Card>
 
-            <Card className="border-border/60 p-6 lg:col-span-2">
+            <Card id="pipeline" className="border-border/60 p-6 lg:col-span-2">
               <div className="flex items-center justify-between gap-3">
                 <h2 className="font-semibold">Pipeline</h2>
                 <div className="flex items-center gap-2">
@@ -218,7 +306,7 @@ function Dashboard() {
           </div>
 
           {/* Contacts */}
-          <Card className="border-border/60 p-6">
+          <Card id="contacts" className="border-border/60 p-6">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-semibold">Contacts</h2>
               <div className="flex items-center gap-2">
@@ -529,11 +617,11 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
         <Link to="/"><Logo /></Link>
       </div>
       <nav className="flex-1 space-y-1 p-3 text-sm">
-        <NavItem icon={LayoutDashboard} label="Overview" active />
-        <NavItem icon={Workflow} label="Pipeline" />
-        <NavItem icon={Users} label="Contacts" />
-        <NavItem icon={Mic} label="Voice notes" />
-        <NavItem icon={Settings} label="Settings" />
+        <NavItem icon={LayoutDashboard} label="Overview" targetId="overview" active />
+        <NavItem icon={Workflow} label="Pipeline" targetId="pipeline" />
+        <NavItem icon={Users} label="Contacts" targetId="contacts" />
+        <NavItem icon={Mic} label="Voice notes" targetId="voice-notes" />
+        <NavItem icon={Settings} label="Settings" onClick={() => toast.info("Settings coming soon")} />
       </nav>
       <div className="border-t border-sidebar-border p-3">
         <button
@@ -547,9 +635,16 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
   );
 }
 
-function NavItem({ icon: Icon, label, active }: { icon: React.ElementType; label: string; active?: boolean }) {
+function NavItem({
+  icon: Icon, label, active, targetId, onClick,
+}: { icon: React.ElementType; label: string; active?: boolean; targetId?: string; onClick?: () => void }) {
   return (
     <button
+      type="button"
+      onClick={() => {
+        if (onClick) onClick();
+        else if (targetId) scrollToId(targetId);
+      }}
       className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors ${
         active ? "bg-gradient-brand text-primary-foreground shadow-brand" : "hover:bg-sidebar-accent"
       }`}
