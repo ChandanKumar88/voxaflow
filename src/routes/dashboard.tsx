@@ -16,12 +16,18 @@ import {
 import {
   Mic, Upload, Square, Phone, Plus, LayoutDashboard, Users, Workflow, Settings, LogOut, Sparkles, Pencil, Trash2, Search,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { contactsService, type Contact } from "@/services/contacts";
 import { dealsService, DEAL_STAGES, type Deal, type DealStage } from "@/services/deals";
 import { voiceNotesService, type VoiceNote } from "@/services/voiceNotes";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const scrollToId = (id: string) => {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
