@@ -117,11 +117,15 @@ function Dashboard() {
       const note = await voiceNotesService.create({
         title: opts?.title ?? `Voice note ${new Date().toLocaleString()}`,
         transcript: "Transcription pending…",
-        audio_url: signed?.signedUrl ?? path,
+        audio_url: path,
         duration_seconds: opts?.durationSeconds ?? null,
       });
       setVoiceNotes((p) => [note, ...p]);
-      toast.success("Voice note saved");
+      toast.success("Voice note saved — transcribing…");
+      // Trigger async transcription
+      supabase.functions
+        .invoke("transcribe-voice-note", { body: { voiceNoteId: note.id } })
+        .catch((err) => console.error("invoke transcribe failed", err));
     } catch (e) {
       toast.error(`Upload failed: ${(e as Error).message}`);
     } finally {
