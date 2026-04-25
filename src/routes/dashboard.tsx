@@ -113,7 +113,6 @@ function Dashboard() {
         upsert: false,
       });
       if (upErr) throw upErr;
-      const { data: signed } = await supabase.storage.from("voice-notes").createSignedUrl(path, 60 * 60 * 24 * 365);
       const note = await voiceNotesService.create({
         title: opts?.title ?? `Voice note ${new Date().toLocaleString()}`,
         transcript: "Transcription pending…",
