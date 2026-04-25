@@ -84,6 +84,29 @@ function Dashboard() {
     if (user) loadAll();
   }, [user]);
 
+  // Poll voice notes that are still pending/processing for transcript updates
+  useEffect(() => {
+    const pending = voiceNotes.filter((v) => {
+      const s = (v as VoiceNote & { status?: string }).status;
+      return s === "pending" || s === "processing";
+    });
+    if (pending.length === 0) return;
+    const interval = setInterval(async () => {
+      try {
+        const fresh = await voiceNotesService.list({ limit: 10 });
+        setVoiceNotes(fresh);
+        const stillPending = fresh.some((v) => {
+          const s = (v as VoiceNote & { status?: string }).status;
+          return s === "pending" || s === "processing";
+        });
+        if (!stillPending) clearInterval(interval);
+      } catch (e) {
+        console.error("poll error", e);
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [voiceNotes]);
+
   const filteredDeals = useMemo(
     () => deals.filter((d) => !dealSearch || d.company.toLowerCase().includes(dealSearch.toLowerCase())),
     [deals, dealSearch]
