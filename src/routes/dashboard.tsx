@@ -49,6 +49,11 @@ function Dashboard() {
   const [dealSearch, setDealSearch] = useState("");
   const [contactSearch, setContactSearch] = useState("");
   const [recording, setRecording] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+  const recordStartRef = useRef<number>(0);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Redirect if not logged in
