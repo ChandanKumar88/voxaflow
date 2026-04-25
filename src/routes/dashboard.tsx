@@ -679,7 +679,12 @@ function Sidebar({ onLogout }: { onLogout: () => void }) {
         <NavItem icon={Workflow} label="Pipeline" targetId="pipeline" />
         <NavItem icon={Users} label="Contacts" targetId="contacts" />
         <NavItem icon={Mic} label="Voice notes" targetId="voice-notes" />
-        <NavItem icon={Settings} label="Settings" onClick={() => toast.info("Settings coming soon")} />
+        <Link
+          to="/settings"
+          className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sidebar-foreground/80 hover:bg-sidebar-accent"
+        >
+          <Settings className="h-4 w-4" /> Settings
+        </Link>
       </nav>
       <div className="border-t border-sidebar-border p-3">
         <button
