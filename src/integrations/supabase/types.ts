@@ -111,6 +111,7 @@ export type Database = {
           deal_id: string | null
           duration_seconds: number | null
           id: string
+          status: string
           title: string
           transcript: string | null
           updated_at: string
@@ -123,6 +124,7 @@ export type Database = {
           deal_id?: string | null
           duration_seconds?: number | null
           id?: string
+          status?: string
           title: string
           transcript?: string | null
           updated_at?: string
@@ -135,6 +137,7 @@ export type Database = {
           deal_id?: string | null
           duration_seconds?: number | null
           id?: string
+          status?: string
           title?: string
           transcript?: string | null
           updated_at?: string

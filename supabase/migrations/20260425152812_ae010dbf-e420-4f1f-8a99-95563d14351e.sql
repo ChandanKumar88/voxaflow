@@ -1,0 +1,1 @@
+ALTER TABLE public.voice_notes ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'pending';
