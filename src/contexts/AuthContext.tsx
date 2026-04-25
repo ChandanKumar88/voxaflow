@@ -9,7 +9,7 @@ type AuthContextValue = {
   loading: boolean;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signInWithGoogle: () => Promise<{ error: Error | null }>;
+  signInWithGoogle: () => Promise<{ error: Error | null; redirected?: boolean }>;
   signOut: () => Promise<void>;
 };
 
@@ -54,10 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/dashboard`,
+      redirect_uri: window.location.origin,
     });
     if (result.error) return { error: result.error instanceof Error ? result.error : new Error(String(result.error)) };
-    return { error: null };
+    return { error: null, redirected: result.redirected };
   };
 
   const signOut = async () => {
